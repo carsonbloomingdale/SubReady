@@ -14,10 +14,11 @@
     "tesseract.js": "^4.1.0"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.0",
     "@types/react": "^18.2.45",
     "@types/react-dom": "^18.2.18",
     "@vitejs/plugin-react": "^4.2.1",
+    "tailwindcss": "^4.3.0",
     "vite": "^5.0.12"
   }
 }
-
