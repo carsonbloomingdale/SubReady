@@ -1,21 +1,31 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from llama_cpp import Llama
-import json
+from pydantic import BaseModel, Field
 
-app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"])
+from logic import triage_ocr_text
 
-llm = Llama(model_path="./model/Qwen3-4B-Q4_K_M.gguf")
+app = FastAPI(title="SubReady Triage API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+class TriageRequest(BaseModel):
+    ocrText: str = Field(..., min_length=1)
+
 
 @app.post("/triage")
-async def triage(body: dict):
-    result = llm.create_chat_completion(
-        messages=[{
-            "role": "user",
-            "content": f"Analyze this contractor document. Return only JSON with status (green/amber/red), reason, nextStep.\n\n{body['ocrText']}"
-        }],
-        response_format={ "type": "json_object" }
-    )
-    return json.loads(result['choices'][0]['message']['content'])
-
+@app.post("/api/triage")
+async def triage(body: TriageRequest):
+    try:
+        return triage_ocr_text(body.ocrText)
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Qwen model not found: {exc}. Place the GGUF under ./model/",
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
