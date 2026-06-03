@@ -18,6 +18,7 @@ from models import (
     RequirementsRequest,
     TriageRequest,
 )
+from llm_triage import parse_llm_json, run_llm_only_triage
 from rules.engine import (
     PRESETS,
     ProjectContext,
@@ -36,6 +37,7 @@ N_CTX = int(os.environ.get("N_CTX", "8192"))
 MAX_OCR_CHARS = int(os.environ.get("MAX_OCR_CHARS", "12000"))
 MIN_OCR_CHARS = int(os.environ.get("MIN_OCR_CHARS", "80"))
 N_GPU_LAYERS = int(os.environ.get("N_GPU_LAYERS", "0"))
+TRIAGE_MODE = os.environ.get("TRIAGE_MODE", "rules").lower()
 
 _llm = None
 
@@ -92,7 +94,8 @@ async def health():
         "n_ctx": N_CTX,
         "readinessWeights": h.get("weights"),
         "classifications": h.get("classifications"),
-        "engine": "rules-first",
+        "engine": "llm-only" if TRIAGE_MODE == "llm" else "rules-first",
+        "triageMode": TRIAGE_MODE,
     }
 
 
@@ -165,7 +168,19 @@ async def requirements_generate(body: RequirementsRequest):
 @app.post("/triage")
 async def triage(body: TriageRequest):
     ocr_text = truncate_ocr(body.ocrText)
-    if not ocr_text or ocr_text.startswith("[PDF document:"):
+    if not ocr_text:
+        raise HTTPException(status_code=400, detail="ocrText is required")
+
+    if TRIAGE_MODE == "llm":
+        llm = _get_llm()
+        if llm is None:
+            raise HTTPException(
+                status_code=503,
+                detail=f"LLM model not available at {MODEL_PATH}",
+            )
+        return run_llm_only_triage(llm, ocr_text)
+
+    if ocr_text.startswith("[PDF document:"):
         raise HTTPException(
             status_code=400,
             detail="No readable text. Use an image scan or load a demo OCR sample.",
@@ -212,7 +227,7 @@ async def triage(body: TriageRequest):
                     max_tokens=512,
                     temperature=0.2,
                 )
-                llm_out = json.loads(chat["choices"][0]["message"]["content"])
+                llm_out = parse_llm_json(chat["choices"][0]["message"]["content"])
                 # Rules engine owns status; LLM only enriches narrative fields.
                 result["reason"] = llm_out.get("reason", result["reason"])
                 result["nextStep"] = llm_out.get("nextStep", result["nextStep"])
@@ -230,9 +245,11 @@ async def triage(body: TriageRequest):
                     max_tokens=256,
                     temperature=0.2,
                 )
-                narrative = json.loads(chat["choices"][0]["message"]["content"])
+                narrative = parse_llm_json(chat["choices"][0]["message"]["content"])
                 result["reason"] = narrative.get("reason", result["reason"])
                 result["nextStep"] = narrative.get("nextStep", result["nextStep"])
+        except HTTPException:
+            raise
         except Exception as exc:
             result["llmWarning"] = f"LLM skipped: {exc}"
 
