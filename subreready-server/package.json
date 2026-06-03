@@ -1,0 +1,19 @@
+{
+  "name": "subreready-server",
+  "version": "1.0.0",
+  "description": "Express server with Llama model integration for contractor compliance triage",
+  "main": "index.ts",
+  "type": "module",
+  "scripts": {
+    "start": "node index.ts",
+    "dev": "tsx index.ts"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "node-llama-cpp": "^1.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.2"
+  }
+}
+
