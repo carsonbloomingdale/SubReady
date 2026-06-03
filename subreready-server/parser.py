@@ -4,7 +4,23 @@ from __future__ import annotations
 
 import re
 from dataclasses import asdict, dataclass, field
+from io import BytesIO
 from pathlib import Path
+
+SUPPORTED_UPLOAD_EXTENSIONS = {
+    ".pdf",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".webp",
+    ".gif",
+    ".txt",
+    ".md",
+    ".csv",
+}
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+TEXT_EXTENSIONS = {".txt", ".md", ".csv"}
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
 
 DATE_PATTERN = re.compile(
@@ -171,8 +187,97 @@ def parse_text(raw_text: str) -> ParsedDocument:
     )
 
 
+def _extension(filename: str) -> str:
+    return Path(filename).suffix.lower()
+
+
+def extract_text_from_bytes(filename: str, content: bytes) -> tuple[str, list[str]]:
+    """Extract plain text from an uploaded PDF, image, or text file."""
+    warnings: list[str] = []
+
+    if len(content) > MAX_UPLOAD_BYTES:
+        return "", [f"File exceeds {MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit."]
+
+    suffix = _extension(filename)
+    if suffix not in SUPPORTED_UPLOAD_EXTENSIONS:
+        supported = ", ".join(sorted(SUPPORTED_UPLOAD_EXTENSIONS))
+        return "", [f"Unsupported file type '{suffix}'. Supported: {supported}"]
+
+    if suffix == ".pdf":
+        return _extract_pdf_text(content)
+    if suffix in IMAGE_EXTENSIONS:
+        return _extract_image_text(content)
+    if suffix in TEXT_EXTENSIONS:
+        return content.decode("utf-8", errors="replace"), warnings
+
+    return "", [f"Unsupported file type '{suffix}'."]
+
+
+def _extract_pdf_text(content: bytes) -> tuple[str, list[str]]:
+    warnings: list[str] = []
+    try:
+        from pypdf import PdfReader
+    except ImportError:
+        return "", ["pypdf is not installed. Run: pip install pypdf"]
+
+    reader = PdfReader(BytesIO(content))
+    if reader.is_encrypted:
+        try:
+            reader.decrypt("")
+        except Exception:
+            return "", ["PDF is password-protected and could not be read."]
+
+    page_texts: list[str] = []
+    for page in reader.pages:
+        page_texts.append((page.extract_text() or "").strip())
+
+    full_text = "\n\n".join(t for t in page_texts if t).strip()
+    if not full_text:
+        warnings.append(
+            "No text found in PDF; it may be scanned. Upload a photo of the document instead."
+        )
+    elif len(full_text) < 80:
+        warnings.append("Very little text extracted from PDF; verify readability.")
+
+    return full_text, warnings
+
+
+def _extract_image_text(content: bytes) -> tuple[str, list[str]]:
+    warnings: list[str] = []
+    try:
+        from PIL import Image
+        import pytesseract
+    except ImportError as exc:
+        return "", [f"Image OCR dependencies missing: {exc}"]
+
+    try:
+        image = Image.open(BytesIO(content))
+        if image.mode not in ("RGB", "L"):
+            image = image.convert("RGB")
+        text = pytesseract.image_to_string(image)
+    except pytesseract.TesseractNotFoundError:
+        return "", [
+            "Tesseract OCR is not installed. Install it (e.g. brew install tesseract) and retry."
+        ]
+    except Exception as exc:
+        return "", [f"Could not read image: {exc}"]
+
+    text = text.strip()
+    if not text:
+        warnings.append("OCR returned no text; try a clearer photo with good lighting.")
+    return text, warnings
+
+
+def parse_upload(filename: str, content: bytes) -> ParsedDocument:
+    """Extract text from an uploaded file, then run structured parsing."""
+    raw_text, extract_warnings = extract_text_from_bytes(filename, content)
+    parsed = parse_text(raw_text)
+    parsed.parse_warnings = extract_warnings + parsed.parse_warnings
+    return parsed
+
+
 def parse_file(path: str | Path) -> ParsedDocument:
-    """Read a text-based document from disk and parse it."""
+    """Read a document from disk (PDF, image, or text) and parse it."""
     file_path = Path(path)
     if not file_path.exists():
         return ParsedDocument(
@@ -189,20 +294,21 @@ def parse_file(path: str | Path) -> ParsedDocument:
         )
 
     suffix = file_path.suffix.lower()
-    if suffix not in {".txt", ".md", ".csv"}:
-        return ParsedDocument(
-            raw_text="",
-            cleaned_text="",
-            line_count=0,
-            sections=[],
-            detected_types=[],
-            dates=[],
-            emails=[],
-            amounts=[],
-            policy_or_license_ids=[],
-            parse_warnings=[
-                f"Unsupported file type '{suffix}'. Provide OCR text or a .txt file."
-            ],
-        )
+    if suffix in SUPPORTED_UPLOAD_EXTENSIONS:
+        return parse_upload(file_path.name, file_path.read_bytes())
 
-    return parse_text(file_path.read_text(encoding="utf-8", errors="replace"))
+    return ParsedDocument(
+        raw_text="",
+        cleaned_text="",
+        line_count=0,
+        sections=[],
+        detected_types=[],
+        dates=[],
+        emails=[],
+        amounts=[],
+        policy_or_license_ids=[],
+        parse_warnings=[
+            f"Unsupported file type '{suffix}'. "
+            f"Supported: {', '.join(sorted(SUPPORTED_UPLOAD_EXTENSIONS))}"
+        ],
+    )

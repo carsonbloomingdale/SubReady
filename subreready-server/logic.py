@@ -9,7 +9,7 @@ from typing import Any
 
 from llama_cpp import Llama
 
-from parser import ParsedDocument, parse_text
+from parser import ParsedDocument, parse_text, parse_upload
 
 DEFAULT_MODEL_PATH = os.environ.get(
     "SUBREADY_MODEL_PATH", "./model/Qwen3-4B-Q4_K_M.gguf"
@@ -88,4 +88,10 @@ def check_document(parsed: ParsedDocument) -> dict[str, Any]:
 def triage_ocr_text(ocr_text: str) -> dict[str, Any]:
     """Parse raw OCR text, then run Qwen mistake checking."""
     parsed = parse_text(ocr_text)
+    return check_document(parsed)
+
+
+def triage_upload(filename: str, content: bytes) -> dict[str, Any]:
+    """Extract text from PDF/image upload, parse, then run Qwen mistake checking."""
+    parsed = parse_upload(filename, content)
     return check_document(parsed)

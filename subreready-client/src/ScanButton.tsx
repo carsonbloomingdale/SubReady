@@ -4,7 +4,7 @@ interface ScanButtonProps {
   onScanComplete: (ocrText: string) => void
 }
 
-export function ScanButton({ onScanComplete }: ScanButtonProps) {
+export default function ScanButton({ onScanComplete }: ScanButtonProps) {
   const [error, setError] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -46,24 +46,15 @@ export function ScanButton({ onScanComplete }: ScanButtonProps) {
 
     const imageData = canvas.toDataURL('image/png')
 
-    // Run OCR
-    const { data: { text } } = await Tesseract.recognize(
-      imageData,
-      'eng',
-      { logger: p => console.log('OCR:', p.status) }
-    )
-
-    // Send to backend
     try {
-      const response = await fetch('http://localhost:3000/api/triage', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ocrText: text })
-      })
-      const result = await response.json()
+      const { data: { text } } = await Tesseract.recognize(
+        imageData,
+        'eng',
+        { logger: (p) => console.log('OCR:', p.status) }
+      )
       onScanComplete(text)
     } catch (err) {
-      setError('Failed to send to server: ' + (err as Error).message)
+      setError('OCR failed: ' + (err as Error).message)
     }
   }
 

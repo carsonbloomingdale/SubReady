@@ -1,0 +1,36 @@
+# Dependencies
+subreready-client/node_modules/
+subreready-client/dist/
+subreready-client/.vite/
+
+# Python
+subreready-server/venv/
+subreready-server/__pycache__/
+**/__pycache__/
+*.py[cod]
+.Python
+*.egg-info/
+.eggs/
+
+# Local env & secrets
+.env
+.env.local
+
+# IDE / editor
+.gide/
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Model weights (large; download locally)
+subreready-server/model/
+*.gguf
+
+# Logs & output
+*.log
+output.txt
+
+# Lockfiles (optional; keep package-lock if your team uses it)
+# package-lock.json

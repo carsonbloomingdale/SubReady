@@ -1,7 +1,10 @@
 fastapi==0.104.1
-llama-cpp-python==0.2.86
+llama-cpp-python>=0.2.86
 uvicorn==0.24.0
 pydantic==2.5.3
 pydantic-settings==2.1.0
 python-multipart==0.0.6
+pypdf==4.0.1
+Pillow==10.2.0
+pytesseract==0.3.10
 
