@@ -1,0 +1,3 @@
+{"docType":"coi","ocrSampleFile":"ocr_samples/coi_hudson_roofing_acord25.txt","expectedFile":"fixtures/coi_hudson_roofing.triage.json"}
+{"docType":"coi","ocrSampleFile":"ocr_samples/coi_north_river_demo.txt","expectedFile":"fixtures/coi_north_river.triage.json"}
+{"docType":"w9","ocrSampleFile":"ocr_samples/w9_north_river.txt","expectedFile":"fixtures/w9_north_river_unsigned.triage.json"}

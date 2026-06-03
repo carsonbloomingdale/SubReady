@@ -1,0 +1,27 @@
+{
+  "fixtureId": "coi_north_river_active_green",
+  "source": "Hackathon Scannables/COI_Active_Green.pdf",
+  "docType": "coi",
+  "requirementTier": "required",
+  "project": {
+    "name": "42 Maple Street Roof Replacement",
+    "gcLegalName": "Sevin Field Demo GC",
+    "projectType": "residential",
+    "riskLevel": "low"
+  },
+  "expectedTriage": {
+    "status": "green",
+    "reason": "COI for North River Roofing is active through 04/01/2027 with $1M GL and matches the Maple Street roof project.",
+    "nextStep": "File COI and proceed with mobilization triage on remaining required documents.",
+    "extracted": {
+      "insuredOrBusinessName": "North River Roofing Co.",
+      "certificateHolderOrGc": "Sevin Field Demo GC",
+      "expirationDate": "2027-04-01",
+      "projectReference": "42 Maple Street Roof Replacement",
+      "ein": "",
+      "additionalInsuredMentioned": false
+    }
+  },
+  "validityState": "valid",
+  "readinessNotes": "Demo positive case: expiration 04/01/2027 is in the future relative to June 2026."
+}

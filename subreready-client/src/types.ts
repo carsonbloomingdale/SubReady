@@ -6,6 +6,10 @@ export interface TriageResult {
   status: 'green' | 'amber' | 'red'
   reason: string
   nextStep: string
+  docType?: string
+  deterministicStatus?: string
+  validityState?: string
+  expirationDate?: string | null
 }
 
 export interface DocumentSlot {

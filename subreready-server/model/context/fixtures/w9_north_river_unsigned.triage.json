@@ -1,0 +1,26 @@
+{
+  "fixtureId": "w9_north_river_unsigned",
+  "source": "demo_scannables/North River roofing W_9 SubReady.pdf",
+  "docType": "w9",
+  "requirementTier": "required",
+  "project": {
+    "name": "42 Maple Street Roof Replacement",
+    "gcLegalName": "Sevin Field Demo GC",
+    "projectType": "residential"
+  },
+  "expectedTriage": {
+    "status": "amber",
+    "reason": "W-9 lists North River Roofing Company and EIN 86-1234567; Part II signature and date are missing.",
+    "nextStep": "Have Micheal Donelly sign and date the W-9 before first payment.",
+    "extracted": {
+      "insuredOrBusinessName": "North River Roofing Company",
+      "certificateHolderOrGc": "",
+      "expirationDate": "",
+      "projectReference": "",
+      "ein": "86-1234567",
+      "additionalInsuredMentioned": false
+    }
+  },
+  "validityState": "not_applicable",
+  "readinessNotes": "Do not penalize missing LLC C/S/P subtype; LLC checkbox alone is sufficient for field triage."
+}

@@ -1,0 +1,27 @@
+{
+  "fixtureId": "coi_hudson_roofing_acord25",
+  "source": "demo_scannables/COI_Hudson_Roofing_ACORD25.png",
+  "docType": "coi",
+  "requirementTier": "required",
+  "project": {
+    "name": "42 Maple Street Remodel",
+    "gcLegalName": "Sevin Construction LLC",
+    "projectType": "residential",
+    "riskLevel": "low"
+  },
+  "expectedTriage": {
+    "status": "red",
+    "reason": "COI policies expired 04/01/2026; coverage is not active for mobilization as of June 2026.",
+    "nextStep": "Request an updated certificate with expiration after project completion.",
+    "extracted": {
+      "insuredOrBusinessName": "Hudson Roofing Company LLC",
+      "certificateHolderOrGc": "Sevin Construction LLC",
+      "expirationDate": "2026-04-01",
+      "projectReference": "42 Maple Street - Bathroom Remodel - Beacon, NY",
+      "ein": "",
+      "additionalInsuredMentioned": true
+    }
+  },
+  "validityState": "expired",
+  "readinessNotes": "Demo negative case: good document layout but expiration in the past."
+}

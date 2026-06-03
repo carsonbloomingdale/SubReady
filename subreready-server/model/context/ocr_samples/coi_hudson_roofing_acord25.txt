@@ -1,0 +1,61 @@
+ACORD® CERTIFICATE OF LIABILITY INSURANCE
+DATE (MM/DD/YYYY) 05/20/2025
+
+PRODUCER
+Summit Insurance Group, LLC
+1250 Ulster Avenue, Suite 200
+Kingston, NY 12401
+(845) 331-3200
+
+INSURED
+Hudson Roofing Company LLC
+15 River Street
+Poughkeepsie, NY 12601
+
+INSURER A: Acadia Insurance Company    NAIC #22692
+INSURER B: The Hartford Insurance Company    NAIC #22357
+INSURER C: Everest National Insurance Company    NAIC #10120
+INSURER D: Markel American Insurance Company    NAIC #28922
+
+COVERAGES
+COMMERCIAL GENERAL LIABILITY
+Policy Number GL123456789
+Effective 04/01/2025  Expiration 04/01/2026
+EACH OCCURRENCE $1,000,000
+GENERAL AGGREGATE $2,000,000
+PRODUCTS - COMP/OP AGG $2,000,000
+DAMAGE TO RENTED PREMISES $300,000
+
+AUTOMOBILE LIABILITY
+Policy Number BA987654321
+Effective 04/01/2025  Expiration 04/01/2026
+COMBINED SINGLE LIMIT $1,000,000
+ANY AUTO OWNED SCHEDULED HIRED NON-OWNED
+
+WORKERS COMPENSATION AND EMPLOYERS LIABILITY
+Policy Number WC555555555
+Effective 04/01/2025  Expiration 04/01/2026
+WC STATUTORY LIMITS
+E.L. EACH ACCIDENT $500,000
+Proprietor/Partner/Officer Excluded? N
+
+UMBRELLA LIABILITY
+Policy Number UMB123789456
+Effective 04/01/2025  Expiration 04/01/2026
+EACH OCCURRENCE $2,000,000 AGGREGATE $2,000,000
+RETENTION $10,000
+
+DESCRIPTION OF OPERATIONS / LOCATIONS / VEHICLES
+Roofing contractor services including installation, repair and maintenance.
+Project: 42 Maple Street - Bathroom Remodel - Beacon, NY
+Certificate Holder is included as Additional Insured as required by written contract.
+
+CERTIFICATE HOLDER
+Sevin Construction LLC
+75 Main Street
+Beacon, NY 12508
+
+AUTHORIZED REPRESENTATIVE
+Jennifer L. Whitman
+
+ACORD 25 (2001/08)

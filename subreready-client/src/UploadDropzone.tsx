@@ -30,7 +30,8 @@ export default function UploadDropzone({ onUpload, disabled }: UploadDropzonePro
         onUpload(file, ocrText)
       } catch (err) {
         console.error('OCR failed:', err)
-        setError('Could not read that file. Try another PDF or image.')
+        const message = err instanceof Error ? err.message : 'Could not read that file.'
+        setError(message)
       } finally {
         setProcessing(false)
       }

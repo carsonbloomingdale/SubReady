@@ -1,0 +1,20 @@
+{
+  "id": "demo-maple-street-residential",
+  "name": "42 Maple Street Remodel",
+  "address": "42 Maple Street, Beacon, NY",
+  "projectType": "residential",
+  "ownerType": "private_owner",
+  "fundingType": "private",
+  "laborClassification": "non_prevailing_wage",
+  "setAside": "none",
+  "riskLevel": "low",
+  "gcLegalName": "Sevin Construction LLC",
+  "requiredDocs": ["coi", "w9", "business_registration"],
+  "optionalDocs": ["osha", "safety_manual", "references"],
+  "coiMinimums": {
+    "generalLiabilityEachOccurrence": 1000000,
+    "workersComp": "statutory"
+  },
+  "referenceDate": "2026-06-03",
+  "notes": "Primary hackathon demo project. Expiration checks use 2026-06-03: Hudson COI 04/01/2026 fails; North River 04/01/2027 passes."
+}

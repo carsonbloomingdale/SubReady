@@ -1,0 +1,26 @@
+{
+  "model": "Qwen3-4B-Q4_K_M.gguf",
+  "purpose": "SubReady field mobilization triage — hackathon demo",
+  "environment": {
+    "LLM_FULL_CONTEXT": "Load system_prompt + glossary + few-shot + project in /triage",
+    "LLM_NARRATIVE": "Refine reason/nextStep only (rules engine keeps status)"
+  },
+  "demoSubcontractors": ["north_river_roofing", "hudson_roofing"],
+  "files": {
+    "system": "system_prompt.md",
+    "glossary": "domain_glossary.json",
+    "schemas": "document_schemas.json",
+    "project": "demo_project.json",
+    "fewShot": "few_shot.jsonl",
+    "ocrSamples": [
+      "ocr_samples/coi_hudson_roofing_acord25.txt",
+      "ocr_samples/coi_north_river_demo.txt",
+      "ocr_samples/w9_north_river.txt"
+    ]
+  },
+  "localScannables": {
+    "w9": "demo_scannables/North River roofing W_9 SubReady.pdf",
+    "coiNorthRiver": "demo_scannables/COI_Active_Green.pdf",
+    "coiHudson": "demo_scannables/COI_Hudson_Roofing_ACORD25.png"
+  }
+}

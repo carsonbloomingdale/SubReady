@@ -1,0 +1,222 @@
+{
+  "docTypes": {
+    "coi": { "label": "Certificate of Insurance", "keywords": ["certificate of liability", "insurance", "policy", "insured", "additional insured"] },
+    "w9": { "label": "W-9", "keywords": ["form w-9", "w-9", "taxpayer identification", "ein"] },
+    "business_registration": { "label": "Business Registration", "keywords": ["articles of organization", "certificate of incorporation", "dba", "business registration"] },
+    "osha": { "label": "OSHA 10/30 or Safety Training", "keywords": ["osha", "10-hour", "30-hour", "construction safety"] },
+    "safety_manual": { "label": "Safety Manual / IIPP", "keywords": ["safety manual", "injury and illness", "iipp", "hazard communication"] },
+    "prevailing_wage_ack": { "label": "Prevailing Wage Acknowledgment", "keywords": ["prevailing wage", "davis-bacon", "wage determination", "acknowledge"] },
+    "certified_payroll_capability": { "label": "Certified Payroll Capability", "keywords": ["certified payroll", "wh-347", "payroll reporting", "fringe benefits"] },
+    "bonding": { "label": "Bonding Documentation", "keywords": ["performance bond", "payment bond", "surety", "bond amount"] },
+    "mwbe_wbe": { "label": "MWBE / WBE Participation", "keywords": ["mwbe", "mbe", "wbe", "certified minority", "disadvantaged business"] },
+    "vendor_responsibility": { "label": "Vendor Responsibility", "keywords": ["vendor responsibility", "vendex", "debarment", "responsible bidder"] },
+    "workforce_plan": { "label": "Workforce Participation Plan", "keywords": ["workforce participation", "local hiring", "apprenticeship", "labor goals"] },
+    "sam_registration": { "label": "SAM.gov Registration", "keywords": ["sam.gov", "system for award management", "uei", "cage code"] },
+    "e_verify_ack": { "label": "E-Verify Acknowledgment", "keywords": ["e-verify", "employment eligibility", "i-9 compliance"] },
+    "federal_clauses": { "label": "Federal Clauses Acceptance", "keywords": ["federal clauses", "fars", "contract clauses", "drug-free workplace"] },
+    "dbe_section3": { "label": "DBE / Section 3", "keywords": ["dbe", "disadvantaged business enterprise", "section 3", "economic opportunity"] },
+    "wosb": { "label": "WOSB Certification", "keywords": ["wosb", "women-owned small business", "edwosb"] },
+    "sdvosb": { "label": "SDVOSB", "keywords": ["sdvosb", "service-disabled veteran", "vosb"] },
+    "epa_certification": { "label": "EPA / Lead-Safe Certification", "keywords": ["epa", "rrp", "lead-safe", "renovation repair painting"] },
+    "trade_license": { "label": "Trade License", "keywords": ["contractor license", "master electrician", "plumbing license", "home improvement"] },
+    "references": { "label": "References", "keywords": ["reference", "prior project", "general contractor contact"] }
+  },
+  "rules": [
+    {
+      "id": "base_all",
+      "tier": "required",
+      "docs": ["coi", "w9", "business_registration"],
+      "when": {}
+    },
+    {
+      "id": "residential_low_risk",
+      "tier": "optional",
+      "docs": ["osha", "safety_manual", "references"],
+      "when": { "projectType": ["residential"], "riskLevel": ["low", "medium"] }
+    },
+    {
+      "id": "commercial_safety",
+      "tier": "optional",
+      "docs": ["osha", "safety_manual"],
+      "when": { "projectType": ["commercial", "institutional", "industrial"], "riskLevel": ["low", "medium"] }
+    },
+    {
+      "id": "commercial_high_safety_required",
+      "tier": "required",
+      "docs": ["osha", "safety_manual"],
+      "when": { "projectType": ["commercial", "institutional", "industrial"], "riskLevel": ["high"] }
+    },
+    {
+      "id": "public_labor_core",
+      "tier": "required",
+      "docs": ["osha", "prevailing_wage_ack", "certified_payroll_capability", "safety_manual"],
+      "when": {
+        "projectType": ["public_infrastructure"],
+        "fundingType": ["public", "grant_funded", "dot_infrastructure"],
+        "laborClassification": ["prevailing_wage"]
+      }
+    },
+    {
+      "id": "municipal_public_works",
+      "tier": "required",
+      "docs": ["bonding", "vendor_responsibility"],
+      "when": {
+        "ownerType": ["municipality", "state_agency"],
+        "projectType": ["public_infrastructure", "institutional"]
+      }
+    },
+    {
+      "id": "public_high_bonding",
+      "tier": "required",
+      "docs": ["bonding"],
+      "when": { "riskLevel": ["high"], "contractValueBand": ["100k_500k", "500k_plus"] }
+    },
+    {
+      "id": "set_aside_mwbe",
+      "tier": "conditional",
+      "docs": ["mwbe_wbe"],
+      "when": { "setAside": ["mwbe", "wbe", "minority_goals"] }
+    },
+    {
+      "id": "set_aside_wosb",
+      "tier": "conditional",
+      "docs": ["wosb"],
+      "when": { "setAside": ["wosb"] }
+    },
+    {
+      "id": "set_aside_sdvosb",
+      "tier": "conditional",
+      "docs": ["sdvosb"],
+      "when": { "setAside": ["sdvosb"] }
+    },
+    {
+      "id": "set_aside_section3",
+      "tier": "conditional",
+      "docs": ["dbe_section3", "workforce_plan"],
+      "when": { "setAside": ["section_3"] }
+    },
+    {
+      "id": "federal_package",
+      "tier": "required",
+      "docs": ["sam_registration", "bonding", "osha", "certified_payroll_capability", "e_verify_ack", "federal_clauses"],
+      "when": {
+        "projectType": ["federal"],
+        "fundingType": ["federal_assistance"],
+        "ownerType": ["federal_agency"]
+      }
+    },
+    {
+      "id": "federal_dbe_conditional",
+      "tier": "conditional",
+      "docs": ["dbe_section3"],
+      "when": { "projectType": ["federal"], "setAside": ["mwbe", "wbe", "minority_goals", "section_3"] }
+    },
+    {
+      "id": "nyserda_energy",
+      "tier": "required",
+      "docs": ["epa_certification", "trade_license", "safety_manual"],
+      "when": { "fundingType": ["nyserda"], "projectType": ["utility_energy", "residential", "commercial"] }
+    },
+    {
+      "id": "nyserda_workforce_conditional",
+      "tier": "conditional",
+      "docs": ["mwbe_wbe", "workforce_plan"],
+      "when": { "fundingType": ["nyserda"], "setAside": ["mwbe", "wbe", "minority_goals"] }
+    },
+    {
+      "id": "emergency_fast_track",
+      "tier": "optional",
+      "docs": ["osha", "bonding"],
+      "when": { "projectType": ["emergency_response"] }
+    },
+    {
+      "id": "trade_scope_licensed",
+      "tier": "required",
+      "docs": ["trade_license"],
+      "when": { "tradeScope": ["electrical", "plumbing", "hvac", "general_contractor"] }
+    },
+    {
+      "id": "exclude_prevailing_private_residential",
+      "tier": "not_applicable",
+      "docs": ["prevailing_wage_ack", "certified_payroll_capability", "bonding", "mwbe_wbe", "sam_registration", "e_verify_ack", "federal_clauses"],
+      "when": {
+        "projectType": ["residential"],
+        "ownerType": ["private_owner", "developer", "general_contractor"],
+        "fundingType": ["private"],
+        "laborClassification": ["non_prevailing_wage"]
+      }
+    }
+  ],
+  "riskProfiles": {
+    "low": {
+      "coiMinLimits": { "generalLiability": 1000000, "workersComp": "statutory" },
+      "bondingThreshold": null,
+      "auditDepth": "light"
+    },
+    "medium": {
+      "coiMinLimits": { "generalLiability": 2000000, "workersComp": "statutory" },
+      "bondingThreshold": 250000,
+      "auditDepth": "standard"
+    },
+    "high": {
+      "coiMinLimits": { "generalLiability": 5000000, "workersComp": "statutory", "umbrella": 5000000 },
+      "bondingThreshold": 100000,
+      "auditDepth": "deep"
+    }
+  },
+  "scoringProfiles": {
+    "residential_private": {
+      "weights": { "completeness": 0.25, "validity": 0.35, "projectSpecific": 0.2, "auditIntegrity": 0.1, "operationalReliability": 0.1 },
+      "emphasis": "Insurance and business identity drive mobilization."
+    },
+    "public_works": {
+      "weights": { "completeness": 0.2, "validity": 0.2, "projectSpecific": 0.3, "auditIntegrity": 0.15, "operationalReliability": 0.15 },
+      "emphasis": "Payroll, safety, and bonding drive mobilization."
+    },
+    "federal": {
+      "weights": { "completeness": 0.15, "validity": 0.15, "projectSpecific": 0.25, "auditIntegrity": 0.3, "operationalReliability": 0.15 },
+      "emphasis": "Vendor eligibility and traceability drive mobilization."
+    },
+    "energy_retrofit": {
+      "weights": { "completeness": 0.2, "validity": 0.25, "projectSpecific": 0.3, "auditIntegrity": 0.15, "operationalReliability": 0.1 },
+      "emphasis": "Trade credentials and program certifications drive mobilization."
+    },
+    "default": {
+      "weights": { "completeness": 0.25, "validity": 0.25, "projectSpecific": 0.25, "auditIntegrity": 0.125, "operationalReliability": 0.125 },
+      "emphasis": "Balanced mobilization readiness."
+    }
+  },
+  "readinessHeuristic": {
+    "weights": {
+      "documentationCompleteness": 0.4,
+      "documentValidity": 0.25,
+      "operationalReliability": 0.15,
+      "regulatoryAlignment": 0.1,
+      "auditIntegrity": 0.1
+    },
+    "tierWeights": { "critical": 0.9, "optional": 0.1 },
+    "expiringWithinDays": 30,
+    "demoReferenceDate": "2026-06-03",
+    "classifications": [
+      { "min": 90, "id": "ready_for_mobilization", "label": "Ready for Mobilization" },
+      { "min": 75, "id": "conditionally_ready", "label": "Conditionally Ready" },
+      { "min": 50, "id": "incomplete_review_required", "label": "Incomplete / Review Required" },
+      { "min": 0, "id": "high_compliance_risk", "label": "High Compliance Risk" }
+    ],
+    "regulatoryDocTypes": [
+      "prevailing_wage_ack",
+      "certified_payroll_capability",
+      "mwbe_wbe",
+      "wosb",
+      "sdvosb",
+      "vendor_responsibility",
+      "workforce_plan",
+      "sam_registration",
+      "e_verify_ack",
+      "federal_clauses",
+      "dbe_section3",
+      "bonding"
+    ],
+    "expirationRelevantDocTypes": ["coi", "bonding", "trade_license", "osha", "mwbe_wbe", "wosb", "sdvosb", "epa_certification"]
+  }
+}

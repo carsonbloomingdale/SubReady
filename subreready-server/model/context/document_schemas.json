@@ -1,0 +1,52 @@
+{
+  "coi": {
+    "form": "ACORD 25 Certificate of Liability Insurance",
+    "extractFields": [
+      "issueDate",
+      "producerName",
+      "insuredName",
+      "insuredAddress",
+      "certificateHolderName",
+      "certificateHolderAddress",
+      "insurers",
+      "policies",
+      "descriptionOfOperations",
+      "additionalInsuredLanguage",
+      "authorizedRepresentative"
+    ],
+    "policies": {
+      "commercialGeneralLiability": ["policyNumber", "effective", "expiration", "eachOccurrence", "generalAggregate"],
+      "automobileLiability": ["policyNumber", "effective", "expiration", "combinedSingleLimit"],
+      "workersCompensation": ["policyNumber", "effective", "expiration", "statutory", "employersLiabilityEachAccident"],
+      "umbrella": ["policyNumber", "effective", "expiration", "eachOccurrence", "aggregate", "retention"]
+    },
+    "mobilizationChecks": [
+      "insured matches subcontractor record",
+      "certificate holder matches GC or project GC name",
+      "expiration after project start",
+      "GL limits meet project risk profile",
+      "additional insured when contract requires",
+      "description of operations references project or scope"
+    ]
+  },
+  "w9": {
+    "form": "IRS Form W-9 (Rev. March 2024)",
+    "extractFields": [
+      "line1_name",
+      "line2_businessName",
+      "line3a_taxClassification",
+      "line5_address",
+      "line6_cityStateZip",
+      "part1_ein",
+      "part1_ssn",
+      "part2_signaturePresent",
+      "part2_date"
+    ],
+    "mobilizationChecks": [
+      "business name matches subcontractor",
+      "EIN or SSN present",
+      "tax classification selected",
+      "signature and date on Part II"
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+Form W-9 (Rev. March 2024)
+Request for Taxpayer Identification Number and Certification
+
+1 Name: Micheal Donelly
+2 Business name: North River Roofing Company
+3a Federal tax classification: [X] LLC    C Corporation S Corporation P Partnership
+4 Exemptions: (blank)
+5 Address: 118 Main Street
+6 City, state, ZIP: Kingston NY, 12401
+7 Account numbers: (blank)
+
+Part I Taxpayer Identification Number (TIN)
+Social security number: (blank)
+Employer identification number: 86-1234567
+
+Part II Certification
+Under penalties of perjury, I certify that...
+Signature of U.S. person: (blank)
+Date: (blank)
+
+Give form to the requester. Do not send to the IRS.

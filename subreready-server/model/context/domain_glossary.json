@@ -1,0 +1,55 @@
+{
+  "product": "SubReady",
+  "disclaimer": "Operational mobilization triage — not legal or governmental verification.",
+  "docTypes": {
+    "coi": "Certificate of Insurance (often ACORD 25)",
+    "w9": "IRS Form W-9 Request for Taxpayer Identification Number",
+    "business_registration": "State business entity registration or DBA",
+    "osha": "OSHA 10/30 card or training certificate",
+    "safety_manual": "Written safety program or IIPP",
+    "prevailing_wage_ack": "Acknowledgment of prevailing wage requirements",
+    "certified_payroll_capability": "Statement or sample showing WH-347 / certified payroll ability",
+    "bonding": "Performance/payment bond or surety letter",
+    "mwbe_wbe": "MWBE/WBE certification or participation form",
+    "trade_license": "State/local trade contractor license"
+  },
+  "triageStatuses": {
+    "green": "Accept for mobilization triage; GC may still spot-check",
+    "amber": "Proceed only after GC confirms noted gap",
+    "red": "Do not mobilize until resolved"
+  },
+  "demoContractors": {
+    "north_river_roofing": {
+      "legalName": "North River Roofing Company",
+      "contact": "Micheal Donelly",
+      "address": "118 Main Street, Kingston NY 12401",
+      "ein": "86-1234567",
+      "trade": "roofing"
+    },
+    "hudson_roofing": {
+      "legalName": "Hudson Roofing Company LLC",
+      "address": "15 River Street, Poughkeepsie NY 12601",
+      "trade": "roofing"
+    }
+  },
+  "demoGc": {
+    "sevin_construction": "Sevin Construction LLC, 75 Main Street, Beacon NY 12508",
+    "sevin_field_demo": "Sevin Field Demo GC"
+  },
+  "demoProjects": {
+    "maple_street_remodel": {
+      "name": "42 Maple Street - Bathroom Remodel",
+      "location": "Beacon, NY",
+      "projectType": "residential",
+      "ownerType": "private_owner",
+      "fundingType": "private"
+    },
+    "maple_street_roof": {
+      "name": "42 Maple Street Roof Replacement",
+      "location": "Beacon, NY",
+      "projectType": "residential",
+      "ownerType": "private_owner",
+      "fundingType": "private"
+    }
+  }
+}
