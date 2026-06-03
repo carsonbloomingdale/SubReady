@@ -1,43 +1,53 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import {
   appendAuditEvent,
+  clearStoredProject,
+  DEFAULT_PROJECT,
+  DEMO_PROJECT,
   evaluateReadiness,
   generateRequirements,
+  loadStoredProject,
   mergeRequirementsForDisplay,
+  saveStoredProject,
   triageDocument,
-  uploadSlotRequirements,
-  DEMO_PROJECT,
-  UPLOAD_PROJECT,
   type AuditEvent,
-  type DemoProject,
+  type ProjectConfig,
   type ReadinessResult,
   type RequirementRow,
 } from '../api'
 import {
-  DOC_SLOTS,
   detectDocType,
+  documentSlotsFromRequirements,
   triageToDocStatus,
   type DocumentSlot,
   type DocType,
 } from '../types'
 
+type Phase = 'setup' | 'onboarding'
+
 interface Options {
-  /** Demo route: Maple Street project, full checklist, sample OCR buttons. */
+  /** /demo — fixed Maple Street project + sample OCR buttons */
   demo?: boolean
-  /** Record audit events after triage (demo GC workflow). */
+  /** Record audit events after triage */
   audit?: boolean
+  /** / — adaptive project wizard before uploads */
+  adaptive?: boolean
 }
 
-export function useMobilizationFlow({ demo = false, audit = false }: Options = {}) {
-  const project: DemoProject | undefined = demo ? DEMO_PROJECT : undefined
-  const evaluateProject = demo ? DEMO_PROJECT : UPLOAD_PROJECT
+export function useMobilizationFlow({ demo = false, audit = false, adaptive = false }: Options = {}) {
+  const [phase, setPhase] = useState<Phase>(() =>
+    adaptive && !demo ? (loadStoredProject() ? 'onboarding' : 'setup') : 'onboarding',
+  )
+  const [project, setProject] = useState<ProjectConfig>(() =>
+    adaptive && !demo ? (loadStoredProject() ?? { ...DEFAULT_PROJECT }) : DEMO_PROJECT,
+  )
+  const [emphasis, setEmphasis] = useState('')
+  const [scoringProfile, setScoringProfile] = useState('')
+  const [setupLoading, setSetupLoading] = useState(false)
+  const [setupError, setSetupError] = useState<string | null>(null)
 
-  const [documents, setDocuments] = useState<DocumentSlot[]>(
-    DOC_SLOTS.map((d) => ({ ...d })),
-  )
-  const [requirements, setRequirements] = useState<RequirementRow[]>(
-    demo ? [] : uploadSlotRequirements(),
-  )
+  const [documents, setDocuments] = useState<DocumentSlot[]>([])
+  const [requirements, setRequirements] = useState<RequirementRow[]>([])
   const [readiness, setReadiness] = useState<ReadinessResult | null>(null)
   const [readinessLoading, setReadinessLoading] = useState(false)
   const [readinessError, setReadinessError] = useState<string | null>(null)
@@ -48,22 +58,24 @@ export function useMobilizationFlow({ demo = false, audit = false }: Options = {
   const documentsRef = useRef(documents)
   const requirementsRef = useRef(requirements)
   const auditRef = useRef(auditChain)
+  const projectRef = useRef(project)
   documentsRef.current = documents
   requirementsRef.current = requirements
   auditRef.current = auditChain
+  projectRef.current = project
 
   const refreshReadiness = useCallback(
-    async (docs: DocumentSlot[], reqs: RequirementRow[]) => {
-      if (reqs.length === 0) return
+    async (docs: DocumentSlot[], reqs: RequirementRow[], proj: ProjectConfig) => {
+      if (reqs.length === 0 || docs.length === 0) return
       const hasUpload = docs.some((d) => d.status !== 'pending' && d.status !== 'reviewing')
-      if (!demo && !hasUpload) {
+      if (adaptive && !demo && !hasUpload) {
         setReadiness(null)
         return
       }
       setReadinessLoading(true)
       setReadinessError(null)
       try {
-        const result = await evaluateReadiness(reqs, docs, auditRef.current, evaluateProject)
+        const result = await evaluateReadiness(reqs, docs, auditRef.current, proj)
         setReadiness(result)
       } catch (err) {
         setReadinessError(err instanceof Error ? err.message : 'Readiness check failed')
@@ -71,31 +83,109 @@ export function useMobilizationFlow({ demo = false, audit = false }: Options = {
         setReadinessLoading(false)
       }
     },
-    [demo, evaluateProject],
+    [adaptive, demo],
+  )
+
+  const bootstrapRequirements = useCallback(
+    async (proj: ProjectConfig) => {
+      const result = await generateRequirements(proj)
+      const slots = documentSlotsFromRequirements(result.requirements)
+      if (slots.length === 0) {
+        throw new Error('No scannable requirements for this project profile.')
+      }
+      setRequirements(result.requirements)
+      setEmphasis(result.emphasis)
+      setScoringProfile(result.scoringProfile)
+      setDocuments(slots)
+      requirementsRef.current = result.requirements
+      documentsRef.current = slots
+      await refreshReadiness(slots, result.requirements, proj)
+    },
+    [refreshReadiness],
   )
 
   useEffect(() => {
-    if (!demo) return
+    if (demo) {
+      let cancelled = false
+      ;(async () => {
+        try {
+          await bootstrapRequirements(DEMO_PROJECT)
+          if (cancelled) return
+        } catch (err) {
+          if (!cancelled) {
+            setBootError(
+              err instanceof Error ? err.message : 'Could not reach API — start server on :8000',
+            )
+          }
+        }
+      })()
+      return () => {
+        cancelled = true
+      }
+    }
 
-    let cancelled = false
-    ;(async () => {
-      try {
-        const reqs = await generateRequirements(DEMO_PROJECT)
-        if (cancelled) return
-        setRequirements(reqs)
-        await refreshReadiness(documentsRef.current, reqs)
-      } catch (err) {
-        if (!cancelled) {
-          setBootError(
-            err instanceof Error ? err.message : 'Could not reach API — start server on :8000',
+    if (adaptive && phase === 'onboarding' && requirements.length === 0) {
+      const stored = loadStoredProject()
+      if (!stored) return
+      let cancelled = false
+      setSetupLoading(true)
+      ;(async () => {
+        try {
+          await bootstrapRequirements(stored)
+          projectRef.current = stored
+        } catch {
+          if (!cancelled) setPhase('setup')
+        } finally {
+          if (!cancelled) setSetupLoading(false)
+        }
+      })()
+      return () => {
+        cancelled = true
+      }
+    }
+  }, [demo, adaptive, phase, requirements.length, bootstrapRequirements])
+
+  const handleProjectSubmit = useCallback(async () => {
+    setSetupLoading(true)
+    setSetupError(null)
+    try {
+      saveStoredProject(project)
+      projectRef.current = project
+      await bootstrapRequirements(project)
+      setPhase('onboarding')
+      setAuditChain([])
+      auditRef.current = []
+      if (audit) {
+        try {
+          const chain = await appendAuditEvent(
+            [],
+            'project_initialized',
+            `project/${project.name}`,
+            `${project.projectType} · ${project.fundingType}`,
           )
+          setAuditChain(chain)
+          auditRef.current = chain
+        } catch {
+          /* optional */
         }
       }
-    })()
-    return () => {
-      cancelled = true
+    } catch (err) {
+      setSetupError(err instanceof Error ? err.message : 'Could not generate requirements')
+    } finally {
+      setSetupLoading(false)
     }
-  }, [demo, refreshReadiness])
+  }, [project, bootstrapRequirements, audit])
+
+  const resetProject = useCallback(() => {
+    clearStoredProject()
+    setPhase('setup')
+    setProject({ ...DEFAULT_PROJECT })
+    setRequirements([])
+    setDocuments([])
+    setReadiness(null)
+    setEmphasis('')
+    setAuditChain([])
+  }, [])
 
   const updateDoc = useCallback((id: DocType, patch: Partial<DocumentSlot>) => {
     setDocuments((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)))
@@ -114,17 +204,17 @@ export function useMobilizationFlow({ demo = false, audit = false }: Options = {
           const chain = await appendAuditEvent(
             auditRef.current,
             'document_triaged',
-            `project/demo/sub/${auditNote.docId}`,
+            `project/${projectRef.current.name}/sub/${auditNote.docId}`,
             `${auditNote.fileName}: ${auditNote.status}`,
           )
           setAuditChain(chain)
           auditRef.current = chain
         } catch {
-          /* audit optional */
+          /* optional */
         }
       }
 
-      await refreshReadiness(nextDocs, requirementsRef.current)
+      await refreshReadiness(nextDocs, requirementsRef.current, projectRef.current)
     },
     [audit, refreshReadiness],
   )
@@ -135,13 +225,19 @@ export function useMobilizationFlow({ demo = false, audit = false }: Options = {
       const targetId =
         detected ??
         documentsRef.current.find((d) => d.status === 'pending')?.id ??
-        documentsRef.current[0].id
+        documentsRef.current[0]?.id
+
+      if (!targetId) return
 
       updateDoc(targetId, { status: 'reviewing', fileName: file.name })
       setProcessing(true)
 
       try {
-        const triage = await triageDocument(ocrText, targetId, project)
+        const triage = await triageDocument(
+          ocrText,
+          targetId,
+          demo ? DEMO_PROJECT : projectRef.current,
+        )
         const nextDocs = documentsRef.current.map((d) =>
           d.id === targetId
             ? {
@@ -177,7 +273,7 @@ export function useMobilizationFlow({ demo = false, audit = false }: Options = {
         setProcessing(false)
       }
     },
-    [updateDoc, commitDocsAndRefresh, project],
+    [updateDoc, commitDocsAndRefresh, demo],
   )
 
   const applyTriageResult = useCallback(
@@ -185,7 +281,11 @@ export function useMobilizationFlow({ demo = false, audit = false }: Options = {
       updateDoc(docId, { status: 'reviewing', fileName })
       setProcessing(true)
       try {
-        const triage = await triageDocument(ocrText, docId, project ?? DEMO_PROJECT)
+        const triage = await triageDocument(
+          ocrText,
+          docId,
+          demo ? DEMO_PROJECT : projectRef.current,
+        )
         const nextDocs = documentsRef.current.map((d) =>
           d.id === docId
             ? {
@@ -221,21 +321,35 @@ export function useMobilizationFlow({ demo = false, audit = false }: Options = {
         setProcessing(false)
       }
     },
-    [updateDoc, commitDocsAndRefresh, project],
+    [updateDoc, commitDocsAndRefresh, demo],
   )
 
-  const allDone = documents.every((d) => d.status !== 'pending' && d.status !== 'reviewing')
+  const allDone =
+    documents.length > 0 &&
+    documents.every((d) => d.status !== 'pending' && d.status !== 'reviewing')
   const canGenerateLink =
     allDone &&
     (readiness?.mobilizationReady || (readiness != null && readiness.overallScore >= 75))
 
-  const displayRequirements = demo
-    ? mergeRequirementsForDisplay(requirements, documents)
-    : mergeRequirementsForDisplay(requirements, documents).filter((r) =>
-        (['coi', 'w9'] as string[]).includes(r.docType),
-      )
+  const displayRequirements = mergeRequirementsForDisplay(requirements, documents)
+
+  const projectSummary = [
+    project.projectType.replace(/_/g, ' '),
+    project.fundingType.replace(/_/g, ' '),
+    project.riskLevel + ' risk',
+  ].join(' · ')
 
   return {
+    phase,
+    project,
+    setProject,
+    emphasis,
+    scoringProfile,
+    setupLoading,
+    setupError,
+    handleProjectSubmit,
+    resetProject,
+    projectSummary,
     documents,
     requirements,
     readiness,
