@@ -104,8 +104,8 @@ export default function ReadinessPanel({
           </p>
           <p className="text-[10px] text-amber-600 mt-1">
             {showFullChecklist
-              ? 'Score reflects uploaded COI + W-9; other items shown for full job requirements.'
-              : 'Based on your uploaded COI and W-9 only.'}
+              ? 'Score reflects scannable uploads; other checklist items may require offline GC verification.'
+              : 'Based on your uploaded scannable documents only.'}
           </p>
         </div>
       )}

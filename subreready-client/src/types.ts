@@ -1,4 +1,8 @@
-export type DocType = 'coi' | 'w9'
+import type { RequirementRow } from './api'
+
+export type DocType = 'coi' | 'w9' | 'business_registration'
+
+export const UPLOADABLE_DOC_TYPES: DocType[] = ['coi', 'w9', 'business_registration']
 
 export type DocStatus = 'pending' | 'reviewing' | 'ready' | 'review' | 'issue'
 
@@ -23,14 +27,26 @@ export interface DocumentSlot {
   id: DocType
   label: string
   status: DocStatus
+  tier: string
   fileName?: string
   triage?: TriageResult
 }
 
-export const DOC_SLOTS: DocumentSlot[] = [
-  { id: 'coi', label: 'Certificate of Insurance', status: 'pending' },
-  { id: 'w9', label: 'W-9', status: 'pending' },
-]
+export function isUploadableDocType(docType: string): docType is DocType {
+  return (UPLOADABLE_DOC_TYPES as readonly string[]).includes(docType)
+}
+
+export function documentSlotsFromRequirements(requirements: RequirementRow[]): DocumentSlot[] {
+  return requirements
+    .filter((r) => isUploadableDocType(r.docType))
+    .filter((r) => r.tier === 'required' || r.tier === 'conditional')
+    .map((r) => ({
+      id: r.docType as DocType,
+      label: r.label,
+      status: 'pending' as const,
+      tier: r.tier,
+    }))
+}
 
 export function triageToDocStatus(triage: TriageResult['status']): DocStatus {
   if (triage === 'green') return 'ready'
@@ -43,7 +59,9 @@ export function detectDocType(text: string, fileName: string): DocType | null {
 
   if (
     haystack.includes('certificate of insurance') ||
+    haystack.includes('certificate of liability') ||
     haystack.includes('general liability') ||
+    haystack.includes('acord') ||
     /\bcoi\b/.test(haystack)
   ) {
     return 'coi'
@@ -56,6 +74,14 @@ export function detectDocType(text: string, fileName: string): DocType | null {
     haystack.includes('taxpayer identification')
   ) {
     return 'w9'
+  }
+  if (
+    haystack.includes('articles of organization') ||
+    haystack.includes('certificate of incorporation') ||
+    haystack.includes('business registration') ||
+    haystack.includes('dba')
+  ) {
+    return 'business_registration'
   }
   return null
 }

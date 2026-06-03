@@ -2,12 +2,14 @@ import { useState } from 'react'
 import UploadDropzone from '../UploadDropzone'
 import DocumentList from '../DocumentList'
 import ReadinessPanel from '../ReadinessPanel'
+import ProjectSetupForm from '../ProjectSetupForm'
+import RequirementsChecklist from '../RequirementsChecklist'
 import PageShell, { FooterLink } from '../PageShell'
 import { appendAuditEvent } from '../api'
 import { useMobilizationFlow } from '../hooks/useMobilizationFlow'
 
 export default function UploadPage() {
-  const flow = useMobilizationFlow()
+  const flow = useMobilizationFlow({ adaptive: true, audit: true })
   const [link, setLink] = useState<string | null>(null)
 
   const handleGetLink = async () => {
@@ -17,7 +19,7 @@ export default function UploadPage() {
       const chain = await appendAuditEvent(
         flow.auditRef.current,
         'mobilization_link_created',
-        'project/upload',
+        `project/${flow.project.name}`,
         `score=${flow.readiness?.overallScore ?? 0}`,
       )
       flow.setAuditChain(chain)
@@ -27,26 +29,73 @@ export default function UploadPage() {
     }
   }
 
+  if (flow.phase === 'setup') {
+    return (
+      <PageShell
+        footer={
+          <p className="text-xs text-gray-400 mt-5 text-center">
+            Adaptive requirements · configured before upload
+          </p>
+        }
+      >
+        <p className="text-sm text-gray-500 mb-4">
+          Tell us about the job first. SubReady builds a mobilization checklist for that
+          project before you scan documents.
+        </p>
+        <ProjectSetupForm
+          value={flow.project}
+          onChange={flow.setProject}
+          onSubmit={flow.handleProjectSubmit}
+          loading={flow.setupLoading}
+          error={flow.setupError}
+        />
+        <FooterLink to="/demo">Skip to GC demo with sample docs →</FooterLink>
+      </PageShell>
+    )
+  }
+
+  if (flow.setupLoading && flow.documents.length === 0) {
+    return (
+      <PageShell>
+        <div className="py-12 text-center">
+          <div className="w-8 h-8 border-2 border-[#1D9E75] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-gray-600">Loading project requirements…</p>
+        </div>
+      </PageShell>
+    )
+  }
+
   return (
     <PageShell
       footer={
         <>
           <p className="text-xs text-gray-400 mt-5 text-center">
-            Rules-first triage · Readiness updates after each upload
+            Rules-first triage · Readiness updates after each capture
           </p>
           <FooterLink to="/demo">GC demo with sample docs →</FooterLink>
         </>
       }
     >
-      <p className="text-sm text-gray-500 mb-6">
-        Upload your compliance docs once. Share anywhere.
-      </p>
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <p className="text-sm font-medium text-gray-800">{flow.project.name}</p>
+        <button
+          type="button"
+          onClick={flow.resetProject}
+          className="text-xs text-gray-400 hover:text-gray-600 shrink-0"
+        >
+          Edit project
+        </button>
+      </div>
+      <p className="text-xs text-gray-500 mb-1">{flow.project.gcLegalName}</p>
+      <p className="text-xs text-gray-400 mb-4 capitalize">{flow.projectSummary}</p>
 
-      {flow.bootError && (
-        <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-100 text-xs text-amber-800">
-          {flow.bootError}
-        </div>
-      )}
+      <RequirementsChecklist
+        requirements={flow.requirements}
+        emphasis={flow.emphasis}
+        scoringProfile={flow.scoringProfile}
+      />
+
+      <p className="text-xs font-semibold text-gray-700 mt-4 mb-2">Capture documents</p>
 
       <UploadDropzone onUpload={flow.handleUpload} disabled={flow.processing} />
 
@@ -59,6 +108,7 @@ export default function UploadPage() {
         loading={flow.readinessLoading}
         error={flow.readinessError}
         requirements={flow.mergeRequirementsForDisplay()}
+        showFullChecklist
       />
 
       <button
@@ -75,7 +125,7 @@ export default function UploadPage() {
       >
         {flow.canGenerateLink
           ? 'Get my readiness link'
-          : 'Upload COI and W-9 to continue'}
+          : 'Complete scannable docs to continue'}
       </button>
 
       {link && (

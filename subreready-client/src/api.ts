@@ -1,6 +1,8 @@
 import type { DocType, DocumentSlot, TriageResult } from './types'
+import { UPLOADABLE_DOC_TYPES } from './types'
+import { PROJECT_PRESETS } from './ProjectSetupForm'
 
-export interface DemoProject {
+export type ProjectConfig = {
   name: string
   address: string
   projectType: string
@@ -9,23 +11,13 @@ export interface DemoProject {
   laborClassification: string
   setAside: string
   riskLevel: string
+  contractValueBand: string
+  tradeScope: string
+  jurisdiction: string
   gcLegalName: string
 }
 
-export const DEMO_PROJECT: DemoProject = {
-  name: '42 Maple Street Remodel',
-  address: '42 Maple Street, Beacon, NY',
-  projectType: 'residential',
-  ownerType: 'private_owner',
-  fundingType: 'private',
-  laborClassification: 'non_prevailing_wage',
-  setAside: 'none',
-  riskLevel: 'low',
-  gcLegalName: 'Sevin Construction LLC',
-}
-
-/** Neutral context for real uploads — no demo job name or GC. */
-export const UPLOAD_PROJECT: DemoProject = {
+export const DEFAULT_PROJECT: ProjectConfig = {
   name: '',
   address: '',
   projectType: 'residential',
@@ -34,7 +26,43 @@ export const UPLOAD_PROJECT: DemoProject = {
   laborClassification: 'non_prevailing_wage',
   setAside: 'none',
   riskLevel: 'low',
+  contractValueBand: 'under_100k',
+  tradeScope: 'general',
+  jurisdiction: 'US-NY',
   gcLegalName: '',
+}
+
+/** Fixed GC demo project for /demo route. */
+export const DEMO_PROJECT: ProjectConfig = {
+  ...DEFAULT_PROJECT,
+  ...PROJECT_PRESETS.residential,
+} as ProjectConfig
+
+export interface GenerateRequirementsResult {
+  requirements: RequirementRow[]
+  emphasis: string
+  scoringProfile: string
+  riskProfile: Record<string, unknown>
+}
+
+const STORAGE_KEY = 'subready_project_v1'
+
+export function loadStoredProject(): ProjectConfig | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    return { ...DEFAULT_PROJECT, ...JSON.parse(raw) } as ProjectConfig
+  } catch {
+    return null
+  }
+}
+
+export function saveStoredProject(project: ProjectConfig) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(project))
+}
+
+export function clearStoredProject() {
+  localStorage.removeItem(STORAGE_KEY)
 }
 
 export interface RequirementRow {
@@ -87,7 +115,7 @@ async function parseError(res: Response): Promise<string> {
 export async function triageDocument(
   ocrText: string,
   docType: DocType,
-  project?: DemoProject,
+  project?: ProjectConfig,
 ): Promise<TriageResult> {
   const body: Record<string, unknown> = {
     ocrText,
@@ -106,27 +134,24 @@ export async function triageDocument(
 }
 
 export async function generateRequirements(
-  project: DemoProject = DEMO_PROJECT,
-): Promise<RequirementRow[]> {
+  project: ProjectConfig,
+): Promise<GenerateRequirementsResult> {
   const res = await fetch('/api/requirements/generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ project }),
   })
   if (!res.ok) throw new Error(await parseError(res))
-  const data = (await res.json()) as { requirements: RequirementRow[] }
-  return data.requirements
+  const data = await res.json()
+  return {
+    requirements: data.requirements,
+    emphasis: data.emphasis ?? '',
+    scoringProfile: data.scoringProfile ?? 'default',
+    riskProfile: data.riskProfile ?? {},
+  }
 }
 
-/** Requirements scoped to what the upload UI collects (COI + W-9 only). */
-export const TRACKED_DOC_TYPES = ['coi', 'w9'] as const
-
-export function uploadSlotRequirements(): RequirementRow[] {
-  return [
-    { docType: 'coi', label: 'Certificate of Insurance', tier: 'required', status: 'missing' },
-    { docType: 'w9', label: 'W-9', tier: 'required', status: 'missing' },
-  ]
-}
+export const TRACKED_DOC_TYPES = UPLOADABLE_DOC_TYPES
 
 export function mergeRequirementsForDisplay(
   serverRequirements: RequirementRow[],
@@ -184,7 +209,7 @@ export async function evaluateReadiness(
   serverRequirements: RequirementRow[],
   documents: DocumentSlot[],
   auditChain: AuditEvent[],
-  project: DemoProject = UPLOAD_PROJECT,
+  project: ProjectConfig,
 ): Promise<ReadinessResult> {
   const requirements = buildRequirementsPayload(serverRequirements, documents)
   const uploadsCompleted = documents.filter(
