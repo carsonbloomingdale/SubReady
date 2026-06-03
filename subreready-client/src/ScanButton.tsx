@@ -95,3 +95,4 @@ export function ScanButton({ onScanComplete }: ScanButtonProps) {
   )
 }
 
+export default ScanButton;

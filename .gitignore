@@ -52,5 +52,18 @@ subreready-client/node_modules
 .vite
 
 #gide
-.gide
+.gide/
 
+# Model files
+.model
+*.gguf
+
+# Python
+__pycache__/
+*.pyc
+
+# Output
+output.txt
+
+# package-lock
+package-lock.json
