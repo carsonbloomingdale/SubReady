@@ -291,7 +291,7 @@ async def audit_append(body: AuditAppendRequest):
         body.chain,
         action=body.action,
         actor=body.actor,
-        entityRef=body.entityRef,
+        entity_ref=body.entityRef,
         note=body.note,
         document_hash=body.documentHash,
     )

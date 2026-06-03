@@ -5,6 +5,8 @@ interface ReadinessPanelProps {
   loading?: boolean
   error?: string | null
   requirements?: RequirementRow[]
+  /** When false, checklist only shows COI + W-9 (upload route). */
+  showFullChecklist?: boolean
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -34,6 +36,7 @@ export default function ReadinessPanel({
   loading,
   error,
   requirements = [],
+  showFullChecklist = false,
 }: ReadinessPanelProps) {
   if (loading) {
     return (
@@ -100,7 +103,9 @@ export default function ReadinessPanel({
             {missing.map((m) => m.label).join(' · ')}
           </p>
           <p className="text-[10px] text-amber-600 mt-1">
-            Score reflects uploaded COI + W-9; other items shown for full job requirements.
+            {showFullChecklist
+              ? 'Score reflects uploaded COI + W-9; other items shown for full job requirements.'
+              : 'Based on your uploaded COI and W-9 only.'}
           </p>
         </div>
       )}

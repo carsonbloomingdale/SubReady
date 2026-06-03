@@ -1,12 +1,31 @@
-import { createWorker } from 'tesseract.js'
+import { createWorker, type Worker } from 'tesseract.js'
 import * as pdfjs from 'pdfjs-dist'
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
 
-/** Max edge length before OCR — large COI PNGs stay accurate and faster */
+const TESSERACT_OPTS = {
+  workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/worker.min.js',
+  langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+  corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@4',
+}
+
 const MAX_IMAGE_EDGE = 2000
-const MIN_OCR_CHARS = 80
+const MIN_OCR_CHARS = 15
+
+let ocrWorkerPromise: Promise<Worker> | null = null
+
+async function getOcrWorker(): Promise<Worker> {
+  if (!ocrWorkerPromise) {
+    ocrWorkerPromise = (async () => {
+      const worker = await createWorker(TESSERACT_OPTS)
+      await worker.loadLanguage('eng')
+      await worker.initialize('eng')
+      return worker
+    })()
+  }
+  return ocrWorkerPromise
+}
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -17,10 +36,6 @@ function fileToDataUrl(file: File): Promise<string> {
   })
 }
 
-/**
- * Downscale and normalize photos/scans before Tesseract.
- * Full-resolution phone photos are slow and often noisier for OCR.
- */
 async function preprocessImageForOcr(file: File): Promise<string> {
   const dataUrl = await fileToDataUrl(file)
   return new Promise((resolve, reject) => {
@@ -51,19 +66,10 @@ async function preprocessImageForOcr(file: File): Promise<string> {
   })
 }
 
-async function runTesseract(imageDataUrl: string): Promise<{ text: string; confidence: number }> {
-  const worker = await createWorker('eng')
-  try {
-    const { data } = await worker.recognize(imageDataUrl)
-    const confidence =
-      data.confidence ??
-      (data.words?.length
-        ? data.words.reduce((s, w) => s + w.confidence, 0) / data.words.length
-        : 0)
-    return { text: data.text ?? '', confidence }
-  } finally {
-    await worker.terminate()
-  }
+async function runTesseract(imageDataUrl: string): Promise<string> {
+  const worker = await getOcrWorker()
+  const { data } = await worker.recognize(imageDataUrl)
+  return data.text ?? ''
 }
 
 export function isAcceptedFile(file: File): boolean {
@@ -96,7 +102,7 @@ async function extractPdfText(file: File): Promise<string> {
   return parts.join('\n').trim()
 }
 
-/** Server-backed OCR when PDF/image OCR is too weak (e.g. scanned W-9). */
+/** Demo route only — pre-written OCR samples from the server. */
 export async function fetchDemoOcr(sampleId: string): Promise<string> {
   const res = await fetch(`/api/context/ocr/${sampleId}`)
   if (!res.ok) throw new Error('Demo sample not available')
@@ -104,63 +110,23 @@ export async function fetchDemoOcr(sampleId: string): Promise<string> {
   return data.ocrText
 }
 
-export function matchDemoSample(fileName: string): string | null {
-  const name = fileName.toLowerCase()
-  if (name.includes('w_9') || name.includes('w-9') || name.includes('w9')) {
-    return 'w9_north_river'
-  }
-  if (name.includes('coi') && name.includes('green')) {
-    return 'coi_north_river'
-  }
-  if (name.includes('hudson') || name.includes('acord')) {
-    return 'coi_hudson'
-  }
-  if (name.includes('north river') && name.includes('coi')) {
-    return 'coi_north_river'
-  }
-  return null
-}
-
-async function finalizeOcrText(text: string, file: File, confidence: number): Promise<string> {
-  const trimmed = text.replace(/\s+/g, ' ').trim()
-  if (trimmed.length >= MIN_OCR_CHARS) {
-    return trimmed
-  }
-
-  const sampleId = matchDemoSample(file.name)
-  if (sampleId) {
-    return fetchDemoOcr(sampleId)
-  }
-
-  if (trimmed.length === 0) {
-    throw new Error(
-      'No text found in this image. Retake with even lighting, fill the frame, and avoid glare.',
-    )
-  }
-
-  throw new Error(
-    `Only ${trimmed.length} characters read (confidence ${Math.round(confidence)}%). ` +
-      'Retake the photo or use a demo button if this is a hackathon sample file.',
-  )
+function normalizeOcrText(text: string): string {
+  return text.replace(/\s+/g, ' ').trim()
 }
 
 export async function extractText(file: File): Promise<string> {
   if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
     let text = ''
     try {
-      text = await extractPdfText(file)
+      text = normalizeOcrText(await extractPdfText(file))
     } catch (err) {
       console.warn('PDF text extraction failed:', err)
     }
     if (text.length >= MIN_OCR_CHARS) {
       return text
     }
-    const sampleId = matchDemoSample(file.name)
-    if (sampleId) {
-      return fetchDemoOcr(sampleId)
-    }
     throw new Error(
-      'This PDF has no readable text layer. Use a photo/scan or a named demo file (W-9 / COI).',
+      'This PDF has no readable text layer. Try a photo or scan of the document instead.',
     )
   }
 
@@ -169,6 +135,13 @@ export async function extractText(file: File): Promise<string> {
   }
 
   const preprocessed = await preprocessImageForOcr(file)
-  const { text, confidence } = await runTesseract(preprocessed)
-  return finalizeOcrText(text, file, confidence)
+  const text = normalizeOcrText(await runTesseract(preprocessed))
+
+  if (text.length === 0) {
+    throw new Error(
+      'No text found in this image. Retake with even lighting, fill the frame, and avoid glare.',
+    )
+  }
+
+  return text
 }

@@ -1,4 +1,4 @@
-import type { DocumentSlot, DocStatus } from './types'
+import type { DocumentSlot, DocStatus, TriageResult } from './types'
 
 interface DocumentListProps {
   documents: DocumentSlot[]
@@ -13,6 +13,17 @@ const STATUS_CONFIG: Record<
   ready: { label: 'Ready', bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500 border-green-500' },
   review: { label: 'Review', bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500 border-amber-500' },
   issue: { label: 'Issue', bg: 'bg-red-50', text: 'text-red-600', dot: 'bg-red-500 border-red-500' },
+}
+
+const VALIDITY_LABELS: Record<string, string> = {
+  active: 'Active',
+  expired: 'Expired',
+  expiring_soon: 'Expiring soon',
+  unknown: 'Unknown',
+}
+
+function formatFlag(flag: string): string {
+  return flag.replace(/_/g, ' ')
 }
 
 function StatusBadge({ status }: { status: DocStatus }) {
@@ -56,15 +67,71 @@ const TRIAGE_DETAIL_CONFIG: Record<
   issue: { panel: 'bg-red-50 border-red-100', nextStep: 'text-red-700' },
 }
 
-function TriageDetail({ status, triage }: { status: DocStatus; triage: NonNullable<DocumentSlot['triage']> }) {
+function MetaRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-2 text-[11px]">
+      <span className="text-gray-500 shrink-0">{label}</span>
+      <span className="text-gray-700 text-right font-medium">{value}</span>
+    </div>
+  )
+}
+
+function TriageDetail({ status, triage }: { status: DocStatus; triage: TriageResult }) {
   if (status === 'pending' || status === 'reviewing') return null
 
   const cfg = TRIAGE_DETAIL_CONFIG[status]
+  const hasMeta =
+    triage.validityState ||
+    triage.expirationDate ||
+    triage.matchScore != null ||
+    triage.expiryScore != null ||
+    (triage.flags && triage.flags.length > 0)
 
   return (
     <div className={`mt-2 rounded-lg border px-2.5 py-2 ${cfg.panel}`}>
       <p className="text-xs text-gray-600 leading-snug">{triage.reason}</p>
       <p className={`text-xs font-medium mt-1 leading-snug ${cfg.nextStep}`}>{triage.nextStep}</p>
+
+      {triage.slotMismatch && (
+        <p className="text-[11px] text-amber-800 mt-2 leading-snug">{triage.slotMismatch}</p>
+      )}
+
+      {hasMeta && (
+        <div className="mt-2 pt-2 border-t border-black/5 space-y-1">
+          {triage.validityState && (
+            <MetaRow
+              label="Validity"
+              value={VALIDITY_LABELS[triage.validityState] ?? triage.validityState}
+            />
+          )}
+          {triage.expirationDate && (
+            <MetaRow label="Expires" value={triage.expirationDate} />
+          )}
+          {triage.matchScore != null && (
+            <MetaRow label="Type match" value={`${Math.round(triage.matchScore * 100)}%`} />
+          )}
+          {triage.expiryScore != null && (
+            <MetaRow label="Date clarity" value={`${Math.round(triage.expiryScore * 100)}%`} />
+          )}
+        </div>
+      )}
+
+      {triage.flags && triage.flags.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {triage.flags.map((flag) => (
+            <span
+              key={flag}
+              className="text-[10px] px-1.5 py-0.5 rounded bg-white/70 text-gray-600 border border-black/5"
+            >
+              {formatFlag(flag)}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {triage.llmWarning && (
+        <p className="text-[10px] text-gray-500 mt-2 italic">{triage.llmWarning}</p>
+      )}
     </div>
   )
 }

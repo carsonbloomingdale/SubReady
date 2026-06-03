@@ -7,9 +7,16 @@ export interface TriageResult {
   reason: string
   nextStep: string
   docType?: string
+  inferredDocType?: string
   deterministicStatus?: string
   validityState?: string
   expirationDate?: string | null
+  flags?: string[]
+  matchScore?: number
+  expiryScore?: number
+  slotMismatch?: string
+  extracted?: Record<string, unknown>
+  llmWarning?: string
 }
 
 export interface DocumentSlot {

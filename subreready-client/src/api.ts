@@ -24,6 +24,19 @@ export const DEMO_PROJECT: DemoProject = {
   gcLegalName: 'Sevin Construction LLC',
 }
 
+/** Neutral context for real uploads — no demo job name or GC. */
+export const UPLOAD_PROJECT: DemoProject = {
+  name: '',
+  address: '',
+  projectType: 'residential',
+  ownerType: 'private_owner',
+  fundingType: 'private',
+  laborClassification: 'non_prevailing_wage',
+  setAside: 'none',
+  riskLevel: 'low',
+  gcLegalName: '',
+}
+
 export interface RequirementRow {
   docType: string
   label: string
@@ -32,6 +45,7 @@ export interface RequirementRow {
   triageStatus?: string | null
   validityState?: string | null
   expirationDate?: string | null
+  triageFlags?: string[]
 }
 
 export interface ReadinessCategory {
@@ -73,17 +87,19 @@ async function parseError(res: Response): Promise<string> {
 export async function triageDocument(
   ocrText: string,
   docType: DocType,
-  project: DemoProject = DEMO_PROJECT,
+  project?: DemoProject,
 ): Promise<TriageResult> {
+  const body: Record<string, unknown> = {
+    ocrText,
+    docType,
+    requirementTier: 'required',
+  }
+  if (project) body.project = project
+
   const res = await fetch('/api/triage', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      ocrText,
-      docType,
-      requirementTier: 'required',
-      project,
-    }),
+    body: JSON.stringify(body),
   })
   if (!res.ok) throw new Error(await parseError(res))
   return res.json()
@@ -102,8 +118,15 @@ export async function generateRequirements(
   return data.requirements
 }
 
-/** Doc types the upload UI can capture (demo focuses on COI + W-9). */
+/** Requirements scoped to what the upload UI collects (COI + W-9 only). */
 export const TRACKED_DOC_TYPES = ['coi', 'w9'] as const
+
+export function uploadSlotRequirements(): RequirementRow[] {
+  return [
+    { docType: 'coi', label: 'Certificate of Insurance', tier: 'required', status: 'missing' },
+    { docType: 'w9', label: 'W-9', tier: 'required', status: 'missing' },
+  ]
+}
 
 export function mergeRequirementsForDisplay(
   serverRequirements: RequirementRow[],
@@ -123,6 +146,7 @@ export function mergeRequirementsForDisplay(
       triageStatus: slot.triage?.status ?? null,
       validityState: slot.triage?.validityState ?? null,
       expirationDate: slot.triage?.expirationDate ?? null,
+      triageFlags: slot.triage?.flags ?? [],
     }
   })
 }
@@ -151,6 +175,7 @@ export function buildRequirementsPayload(
       triageStatus: slot.triage?.status ?? null,
       validityState: slot.triage?.validityState ?? null,
       expirationDate: slot.triage?.expirationDate ?? null,
+      triageFlags: slot.triage?.flags ?? [],
     }
   })
 }
@@ -159,7 +184,7 @@ export async function evaluateReadiness(
   serverRequirements: RequirementRow[],
   documents: DocumentSlot[],
   auditChain: AuditEvent[],
-  project: DemoProject = DEMO_PROJECT,
+  project: DemoProject = UPLOAD_PROJECT,
 ): Promise<ReadinessResult> {
   const requirements = buildRequirementsPayload(serverRequirements, documents)
   const uploadsCompleted = documents.filter(
